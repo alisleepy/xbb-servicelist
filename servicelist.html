@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no" />
+	<link rel="stylesheet" href="css/consume.css">
+	<link rel="stylesheet" href="css/server.css">
+	<script type="text/javascript" src="https://3gimg.qq.com/lightmap/components/geolocation/geolocation.min.js"></script>
+	<script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.12&key=8fed0b36bfda250cc0e32ffcab5681a3"></script>
+	<title>服务网点</title>
+	<style>
+		.wxtip{background: rgba(53, 51, 51, 0.8); text-align: center; position: fixed; left:0; top: 0; width: 100%; height: 100%; z-index: 998; display: none;}
+		.wxtip-icon{width: 52px; height: 67px; background: url(image/weixin-tip.png) no-repeat; display: block; position: absolute; right: 20px; top: 20px;}
+		.wxtip-txt{margin-top: 107px; color: #fff; font-size: 16px; line-height: 1.5;}
+	</style>
+</head>
+
+<body>
+	<div class="wrapper">
+		<div class="banner">
+			<img src="image/banner.png" alt="Banner" class="banner-image">
+		</div>
+		<div class="content">
+			<div class="search"><!--oninput="search()"--><!--onchange="search()"-->
+				<input type="text" name="keywords" class="search-input"  placeholder="输入店名或城市名字">
+				<div class="location">
+					<img src="image/location.png" alt="location" class="location-img">
+					<div class="location-adress">
+						<span id="addressInfo" class="adress"></span>
+						<!-- <img src="image/jiantou.png" alt="jiantou" onclick="search()" class="right" style="padding-left: 0.5rem;"> -->
+						<button class="keywords-search" onclick="search()">查询</button>
+					</div>
+				</div>
+			</div>
+			<!-- 有数据区域 -->
+			<div class="list" style="display: none;">
+				<div class="line">
+					<!--网点列表-->
+				</div>
+			</div>
+			<!-- 无数据区域 -->
+			<div class="no-list" style="display: none;">
+				<h3>附近暂无服务网点</h3>
+				<p class="test">您可以尝试在线下单</p>
+				<div class="nolist-wrapper">
+					<div class="one" onclick="mobile()">
+						<img src="image/phone.png" alt="" class="phone">
+						<p>手机维修</p>
+					</div>
+					<div class="two" onclick="computer()">
+						<img src="image/pc.png" alt="" class="pc">
+						<p>电脑维修</p>
+					</div>
+					<div class="three" onclick="weixiu()">
+						<img src="image/wifi.png" alt="" class="wifi">
+						<p>安装维修</p>
+					</div>
+				</div>
+				<p class="ser">或联系客服：<a href="tel:4006185673">4006185673</a></p>
+			</div>
+		</div>
+		<a class="Customer" href="tel:4006185673">
+			<img src="image/Customer.png" alt="">
+			<p>联</p>
+			<p>系</p>
+			<p>客</p>
+			<p>服</p>
+		</a>
+	</div>
+	<div class="wxtip" id="JweixinTip">
+		<span class="wxtip-icon"></span>
+		<p class="wxtip-txt">点击右上角<br/>选择在浏览器中打开</p>
+	</div>
+</body>
+	<script src="js/flexible.js"></script>
+	<script src="js/jquery.js"></script>
+	<script src="js/fastclick.js"></script>
+	<script>
+		$(function () {
+			// 解决移动端点击300ms延迟
+			FastClick.attach(document.body);
+			initPage(); //显示初始界面
+			//定位
+			var userAddressInfo = sessionStorage.getItem('alisleepy_userAddressInfo');
+			if(userAddressInfo != null){
+				console.log('原来保存的值：'+userAddressInfo);
+				//如果有位置信息，就用保存的值
+				var userAddressInfoArr = userAddressInfo.split('^');
+				var spointx = userAddressInfoArr[0];
+				var spointy = userAddressInfoArr[1];
+				var addressInfo_text = userAddressInfoArr[2];
+				var keywords = userAddressInfoArr[3];
+				$("#addressInfo").text(addressInfo_text);
+				$('input[name="keywords"]').val(keywords);
+				search(keywords);
+			}else{
+				//无用户位置信息，才去获取
+				getCurrentLocation();
+				//如果还是未获取到，就默认搜北京
+				setTimeout(searchbeijing, 10000);
+			}
+		});
+		//init
+		function initPage() {
+			$('.list').hide();
+			$('.no-list').show();
+		}
+		//手机维修
+		function mobile(){
+			var url = 'http://weixiu.sunits.com/index.php/Home/Goods/goods_class/pid/2';
+			window.location.href = url;
+		}
+		//电脑维修
+		function computer(){
+			var url = 'http://weixiu.sunits.com/index.php/Home/Goods/goods_class/pid/4';
+			window.location.href = url;
+		}
+		//安装维修
+		function weixiu(){
+			var url = 'http://weixiu.sunits.com/index.php/Home/Goods/goods_class/pid/1';
+			window.location.href = url;
+		}
+		//未获取到位置时默认搜北京
+		function searchbeijing(){
+			var userAddressInfo = sessionStorage.getItem('alisleepy_userAddressInfo');
+			if(userAddressInfo == null){
+				$("#addressInfo").text('北京市-北京市');
+				$('input[name="keywords"]').val('北京');
+				console.log('未获取到');
+				search('北京');
+			}
+		}
+		//搜索
+		function search(keywords = ''){
+			console.log(keywords);
+			if(keywords.length == 0){
+				var keywords = $('input[name="keywords"]').val();
+			}
+			if(keywords.length == 0){
+				alert('请输入搜索内容');
+				return false;
+			}
+			var url = 'http://weixiu.sunits.com/index.php/Home/ServiceSearch/ajaxGetServicelistByKeywords';
+			$.post(
+				url, {keywords:keywords},
+				function(json){
+					if(json.code == 0){
+						$('.listdata').remove(); //清空原来的
+						$('.no-list').hide();
+						var data = json.data;
+						var str = '';
+						for(i in data){
+							var siteaddress = "'"+data[i].address+"'";
+							str += '<div class="listdata">' +
+									'<div class="outlets">' +
+									'<h4 class="tittle">' + data[i].name + '</h4>' +
+									'<p><span>地址：</span>' + data[i].address + '</p>' +
+									'<p><span>电话：</span><a href="tel:' + data[i].phone + '">' + data[i].phone + '</a></p>' +
+									'</div>' +
+									'<div class="navigation" onclick="getRoutePlan('+siteaddress+','+data[i].longitude+','+data[i].latitude+')"><img src="image/nav.png" alt=""></div>' +
+									'</div>';
+						}
+						$('.list').append(str).show();
+					}else{
+						//无数据
+						$('.list').hide();
+						$('.no-list').show();
+					}
+				},"json"
+			);
+		}
+		//腾讯地图路线规划组件
+		function getRoutePlan(siteaddress, longitude, latitude){
+			if(parseInt(longitude) == 0){
+				longitude = '116.397827'; //终点经度
+			}
+			if(parseInt(longitude) == 0){
+				latitude = '39.903740'; //终点纬度
+			}
+			var appname = '想帮帮-网点导航';
+			var appkey  = 'C5EBZ-FPO6U-X2XVV-BDDDZ-4ZE37-6XBMG';
+			var siteaddress= siteaddress;  //网点地址信息
+			var epointx = longitude; //终点的经度
+			var epointy = latitude;  //终点的纬度
+			//获取起点信息
+			var userAddressInfo = sessionStorage.getItem('alisleepy_userAddressInfo');
+			if(userAddressInfo != null){
+				var userAddressInfoArr = userAddressInfo.split('^');
+				var spointx = userAddressInfoArr[0];
+				var spointy = userAddressInfoArr[1];
+				var url = 'https://apis.map.qq.com/tools/routeplan/spointx='+spointx+'&spointy='+spointy+'&eword='+siteaddress+'&epointx='+epointx+'&epointy='+epointy+'?referer='+appname+'&key='+appkey+'&back=1';
+			}else{
+				var url = 'https://apis.map.qq.com/tools/routeplan/eword='+siteaddress+'&epointx='+epointx+'&epointy='+epointy+'?referer='+appname+'&key='+appkey+'&back=1';
+			}
+			gotoUrl(url);
+		}
+		//跳转到地图导航
+		function gotoUrl(url){
+			var clientType = is_neizhi();
+			console.log(clientType);
+			if(clientType){
+				weixinTip();
+			}else{
+				location.href = url;
+			}
+		}
+		//判断手机浏览器类型
+		function is_neizhi() {
+			var ua = navigator.userAgent.toLowerCase();
+				if (ua.match(/MicroMessenger/i) == "micromessenger") {
+				return "weixin";
+			} else if (ua.match(/QQ/i) == "qq") {
+				return "QQ";
+			} else if (ua.match(/Alipay/i) == "alipay" && payway == 2) {
+				return "alipay";
+			}
+			return false;
+		}
+		//弹出遮罩层
+		function weixinTip(ele){
+			$('#JweixinTip').css("display", "block");
+		}
+		$('#JweixinTip').click(function(){
+			$('#JweixinTip').css("display", "none");
+		});
+
+		$('.location-img').click(function(){
+			getCurrentLocation();
+		});
+
+		//根据浏览器获取当前位置
+		function getCurrentLocation(){
+			var gdmap, geolocation;
+			//加载地图，调用浏览器定位服务
+			gdmap = new AMap.Map('');   //创建实例（如果需要地图页面，参数不为空，参数为div的id值）
+			gdmap.plugin('AMap.Geolocation', function() {
+				geolocation = new AMap.Geolocation({
+					enableHighAccuracy: true,//是否使用高精度定位，默认:true
+					timeout: 10000,          //超过10秒后停止定位，默认：无穷大
+				});
+				gdmap.addControl(geolocation);
+				geolocation.getCurrentPosition();
+				AMap.event.addListener(geolocation, 'complete', onComplete);//返回定位信息
+				AMap.event.addListener(geolocation, 'error', onError);      //返回定位出错信息
+			});
+		}
+		//解析位置结果，得到高德的经纬度地址
+		function onComplete(data){
+			var gdlng = data.position.getLng();
+			var gdlat = data.position.getLat();
+			geocoder(gdlng, gdlat, data.addressComponent.citycode);
+		}
+		//定位出错
+		function onError(data){
+			//alert('获取定位信息失败');
+			$("#addressInfo").text('北京-北京');
+			$('input[name="keywords"]').val('北京');
+			search('北京');
+		}
+		//经纬度获取位置信息 121.525487,31.268275
+		function geocoder(lnglatX, lnglatY, cityCode) {
+			var geocoder = new AMap.Geocoder({
+				city : cityCode, //城市，默认：“全国”
+				radius : 1000 //范围，默认：500
+			});
+			geocoder.getAddress([lnglatX, lnglatY], function(status, result) {
+				if (status === 'complete' && result.info === 'OK') {
+					geocoder_CallBack(result, lnglatX, lnglatY);
+				}
+			});
+		}
+		//获取详细位置信息
+		function geocoder_CallBack(data, lnglatX, lnglatY) {
+			var geocode = data.regeocode;
+			var province = geocode.addressComponent.province;
+			var city = geocode.addressComponent.city;
+			console.log(province);
+			console.log(city);
+			if(city.length > 0){
+				//有城市级别
+				var addressInfo_text = province+'-'+city;
+				$("#addressInfo").text(addressInfo_text);
+				var keywords = city.substr(0, city.length - 1);  //比如北京市，去掉'市',产品输入时一般不加市，所以导致查不出来
+				$('input[name="keywords"]').val(keywords);
+				search(keywords);
+			}else{
+				//没有city
+				var addressInfo_text = province+'-'+province;
+				$("#addressInfo").text(addressInfo_text);
+				var keywords = province.substr(0, province.length - 1);  //比如北京市，去掉'市',产品输入时一般不加市，所以导致查不出来
+				$('input[name="keywords"]').val(keywords);
+				search(keywords);
+			}
+			var addressInfo = geocode.formattedAddress;
+			//保存用户的位置信息  经度^纬度^addressInfo_text^keywords
+			sessionStorage.setItem('alisleepy_userAddressInfo', lnglatX + '^' + lnglatY + '^' + addressInfo_text + '^' + keywords);
+		}
+	</script>
+</html>
