@@ -152,13 +152,14 @@
 						var str = '';
 						for(i in data){
 							var siteaddress = "'"+data[i].address+"'";
+							var sitename    = "'"+data[i].name+"'";
 							str += '<div class="listdata">' +
 									'<div class="outlets">' +
 									'<h4 class="tittle">' + data[i].name + '</h4>' +
 									'<p><span>地址：</span>' + data[i].address + '</p>' +
 									'<p><span>电话：</span><a href="tel:' + data[i].phone + '">' + data[i].phone + '</a></p>' +
 									'</div>' +
-									'<div class="navigation" onclick="getRoutePlan('+siteaddress+','+data[i].longitude+','+data[i].latitude+')"><img src="image/nav.png" alt=""></div>' +
+									'<div class="navigation" onclick="getRoutePlan('+sitename+','+siteaddress+','+data[i].longitude+','+data[i].latitude+')"><img src="image/nav.png" alt=""></div>' +
 									'</div>';
 						}
 						$('.list').append(str).show();
@@ -171,11 +172,11 @@
 			);
 		}
 		//腾讯地图路线规划组件
-		function getRoutePlan(siteaddress, longitude, latitude){
-			if(parseInt(longitude) == 0){
+		function getRoutePlan(sitename, siteaddress, longitude, latitude){
+			if(parseInt(longitude) == 0 || longitude == undefined){
 				longitude = '116.397827'; //终点经度
 			}
-			if(parseInt(longitude) == 0){
+			if(parseInt(latitude) == 0 || latitude == undefined){
 				latitude = '39.903740'; //终点纬度
 			}
 			var appname = '想帮帮-网点导航';
@@ -189,9 +190,11 @@
 				var userAddressInfoArr = userAddressInfo.split('^');
 				var spointx = userAddressInfoArr[0];
 				var spointy = userAddressInfoArr[1];
-				var url = 'https://apis.map.qq.com/tools/routeplan/spointx='+spointx+'&spointy='+spointy+'&eword='+siteaddress+'&epointx='+epointx+'&epointy='+epointy+'?referer='+appname+'&key='+appkey+'&back=1';
+				//var url = 'https://apis.map.qq.com/tools/routeplan/spointx='+spointx+'&spointy='+spointy+'&eword='+siteaddress+'&epointx='+epointx+'&epointy='+epointy+'?referer='+appname+'&key='+appkey+'&back=1';
+				var url = 'https://m.amap.com/navi/?start='+spointx+','+spointy+'&dest='+epointx+','+epointy+'&destName='+sitename+'&naviBy=car&key=8fed0b36bfda250cc0e32ffcab5681a3';
 			}else{
-				var url = 'https://apis.map.qq.com/tools/routeplan/eword='+siteaddress+'&epointx='+epointx+'&epointy='+epointy+'?referer='+appname+'&key='+appkey+'&back=1';
+				//var url = 'https://apis.map.qq.com/tools/routeplan/eword='+siteaddress+'&epointx='+epointx+'&epointy='+epointy+'?referer='+appname+'&key='+appkey+'&back=1';
+				var url = 'https://m.amap.com/navi/?dest='+epointx+','+epointy+'destName='+sitename+'&naviBy=car&key=8fed0b36bfda250cc0e32ffcab5681a3';
 			}
 			gotoUrl(url);
 		}
